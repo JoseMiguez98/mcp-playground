@@ -1,3 +1,5 @@
+import { mkdirSync } from "fs";
+import { join } from "path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
@@ -115,11 +117,14 @@ class MCPManager {
       let transport;
 
       if (isStdioConfig(config)) {
+        const serverCwd = join(process.cwd(), ".mcp-data", id);
+        mkdirSync(serverCwd, { recursive: true });
         transport = new StdioClientTransport({
           command: config.command,
           args: config.args ?? [],
           env: { ...(process.env as Record<string, string>), ...config.env },
           stderr: "pipe",
+          cwd: serverCwd,
         });
       } else if (config.transport === "sse") {
         const headers = config.headers ?? {};
@@ -137,16 +142,17 @@ class MCPManager {
 
       // Intercept onmessage assignment to log incoming messages
       let _onmessage: ((msg: unknown) => void) | undefined;
+      const self = this;
       Object.defineProperty(transport, "onmessage", {
         get() { return _onmessage; },
         set(handler: ((msg: unknown) => void) | undefined) {
           _onmessage = handler
             ? (msg) => {
-                this.addLog(id, { type: "recv", data: JSON.stringify(msg, null, 2), ts: Date.now() });
+                self.addLog(id, { type: "recv", data: JSON.stringify(msg, null, 2), ts: Date.now() });
                 handler(msg);
               }
             : undefined;
-        }.bind(this),
+        },
         configurable: true,
       });
 

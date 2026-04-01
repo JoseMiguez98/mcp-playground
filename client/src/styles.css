@@ -178,6 +178,29 @@ a:hover { text-decoration: underline; }
   flex-shrink: 0;
 }
 
+.server-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text-3);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 120ms, background 120ms, color 120ms;
+}
+
+.server-item:hover .server-delete-btn { opacity: 1; }
+
+.server-delete-btn:hover {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
 .sidebar-footer {
   padding: 8px;
   border-top: 1px solid var(--border-sub);

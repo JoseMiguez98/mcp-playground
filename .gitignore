@@ -36,3 +36,6 @@ Thumbs.db
 
 # Local MCP server config (copy mcp-servers.example.json to get started)
 mcp-servers.json
+
+# Per-server working directories (created at runtime, never committed)
+.mcp-data/

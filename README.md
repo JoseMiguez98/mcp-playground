@@ -12,6 +12,8 @@ Debugging MCP servers typically requires connecting them to an LLM, which costs 
 - 🛠️ Browse and call **tools** exposed by any connected server
 - 📄 Read **resources** and retrieve **prompts**
 - 💾 Persist server configurations in `mcp-servers.json`
+- 🗑️ Add, edit, and delete servers from the UI
+- 🗂️ Stdio server processes run in isolated per-server directories under `.mcp-data/` (gitignored)
 - ⚡ Hot-reload dev environment (server + client run concurrently)
 
 ## Tech Stack
@@ -114,6 +116,8 @@ Server connections are persisted in `mcp-servers.json` at the project root. You 
 > ```bash
 > cp mcp-servers.example.json mcp-servers.json
 > ```
+
+> **Note:** Each stdio server process runs with its working directory set to `.mcp-data/<server-id>/`. This folder is created automatically and gitignored, so any files an MCP server creates (e.g. browser profiles, caches) stay out of the repo.
 
 ## API Reference
 

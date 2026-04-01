@@ -28,6 +28,16 @@ export default function App() {
 
   const selectedServer = servers.find((s) => s.id === selectedId) ?? null;
 
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await api.servers.remove(id);
+      if (selectedId === id) setSelectedId(null);
+      await loadServers();
+    } catch (e) {
+      console.error("Failed to delete server:", e);
+    }
+  }, [selectedId, loadServers]);
+
   return (
     <div className="app">
       <header className="header">
@@ -55,6 +65,7 @@ export default function App() {
           onSelect={setSelectedId}
           onAdd={() => { setEditServer(null); setShowAdd(true); }}
           onEdit={(s) => { setEditServer(s); setShowAdd(true); }}
+          onDelete={handleDelete}
           onRefresh={loadServers}
         />
 
