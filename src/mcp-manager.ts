@@ -7,6 +7,14 @@ import { type ServerConfig, isStdioConfig } from "./config.js";
 
 export type ServerStatus = "connected" | "disconnected" | "connecting" | "error";
 
+export type LogEntryType = "send" | "recv" | "stderr" | "info" | "error";
+
+export interface LogEntry {
+  type: LogEntryType;
+  data: string;
+  ts: number;
+}
+
 export interface ServerInfo {
   id: string;
   name: string;
@@ -16,8 +24,12 @@ export interface ServerInfo {
   error?: string;
 }
 
+const LOG_BUFFER_SIZE = 500;
+
 interface ServerState extends ServerInfo {
   client?: Client;
+  logs: LogEntry[];
+  subscribers: Set<(entry: LogEntry) => void>;
 }
 
 class MCPManager {
@@ -25,7 +37,10 @@ class MCPManager {
 
   addServer(id: string, name: string, config: ServerConfig): ServerInfo {
     const transport = isStdioConfig(config) ? "stdio" : config.transport;
-    const state: ServerState = { id, name, config, status: "disconnected", transport };
+    const state: ServerState = {
+      id, name, config, status: "disconnected", transport,
+      logs: [], subscribers: new Set(),
+    };
     this.states.set(id, state);
     return this.toInfo(state);
   }
@@ -36,7 +51,10 @@ class MCPManager {
       existing.client.close().catch(() => {});
     }
     const transport = isStdioConfig(config) ? "stdio" : config.transport;
-    const state: ServerState = { id, name, config, status: "disconnected", transport };
+    const state: ServerState = {
+      id, name, config, status: "disconnected", transport,
+      logs: existing?.logs ?? [], subscribers: existing?.subscribers ?? new Set(),
+    };
     this.states.set(id, state);
     return this.toInfo(state);
   }
@@ -56,6 +74,23 @@ class MCPManager {
 
   getAllServerInfo(): ServerInfo[] {
     return Array.from(this.states.values()).map(this.toInfo);
+  }
+
+  getLogs(id: string): LogEntry[] {
+    return this.states.get(id)?.logs ?? [];
+  }
+
+  clearLogs(id: string): void {
+    const state = this.states.get(id);
+    if (state) state.logs = [];
+  }
+
+  /** Returns an unsubscribe function. */
+  subscribe(id: string, cb: (entry: LogEntry) => void): () => void {
+    const state = this.states.get(id);
+    if (!state) return () => {};
+    state.subscribers.add(cb);
+    return () => state.subscribers.delete(cb);
   }
 
   async connect(id: string): Promise<void> {
@@ -84,6 +119,7 @@ class MCPManager {
           command: config.command,
           args: config.args ?? [],
           env: { ...(process.env as Record<string, string>), ...config.env },
+          stderr: "pipe",
         });
       } else if (config.transport === "sse") {
         const headers = config.headers ?? {};
@@ -92,12 +128,50 @@ class MCPManager {
         transport = new StreamableHTTPClientTransport(new URL(config.url));
       }
 
+      // Intercept send() to log outgoing messages
+      const origSend = transport.send.bind(transport);
+      transport.send = async (msg: unknown) => {
+        this.addLog(id, { type: "send", data: JSON.stringify(msg, null, 2), ts: Date.now() });
+        return origSend(msg as never);
+      };
+
+      // Intercept onmessage assignment to log incoming messages
+      let _onmessage: ((msg: unknown) => void) | undefined;
+      Object.defineProperty(transport, "onmessage", {
+        get() { return _onmessage; },
+        set(handler: ((msg: unknown) => void) | undefined) {
+          _onmessage = handler
+            ? (msg) => {
+                this.addLog(id, { type: "recv", data: JSON.stringify(msg, null, 2), ts: Date.now() });
+                handler(msg);
+              }
+            : undefined;
+        }.bind(this),
+        configurable: true,
+      });
+
+      this.addLog(id, { type: "info", data: `Connecting to ${isStdioConfig(config) ? `${config.command} ${(config.args ?? []).join(" ")}` : config.url} …`, ts: Date.now() });
+
       await client.connect(transport);
+
+      // Capture stderr from stdio subprocess (accessed after start())
+      if (isStdioConfig(config)) {
+        const proc = (transport as unknown as { _process?: { stderr?: NodeJS.ReadableStream } })._process;
+        if (proc?.stderr) {
+          proc.stderr.on("data", (chunk: Buffer) => {
+            const lines = chunk.toString().trimEnd();
+            if (lines) this.addLog(id, { type: "stderr", data: lines, ts: Date.now() });
+          });
+        }
+      }
+
       state.client = client;
       state.status = "connected";
+      this.addLog(id, { type: "info", data: "Connected.", ts: Date.now() });
     } catch (err) {
       state.status = "error";
       state.error = err instanceof Error ? err.message : String(err);
+      this.addLog(id, { type: "error", data: state.error, ts: Date.now() });
       throw err;
     }
   }
@@ -111,6 +185,7 @@ class MCPManager {
     }
     state.status = "disconnected";
     state.error = undefined;
+    this.addLog(id, { type: "info", data: "Disconnected.", ts: Date.now() });
   }
 
   async listTools(id: string): Promise<Tool[]> {
@@ -140,6 +215,14 @@ class MCPManager {
     return await this.requireClient(id).getPrompt({ name, arguments: args });
   }
 
+  private addLog(id: string, entry: LogEntry): void {
+    const state = this.states.get(id);
+    if (!state) return;
+    state.logs.push(entry);
+    if (state.logs.length > LOG_BUFFER_SIZE) state.logs.shift();
+    for (const cb of state.subscribers) cb(entry);
+  }
+
   private requireClient(id: string): Client {
     const state = this.states.get(id);
     if (!state) throw new Error(`Server '${id}' not found`);
@@ -150,7 +233,7 @@ class MCPManager {
   }
 
   private toInfo = (state: ServerState): ServerInfo => {
-    const { client: _, ...info } = state;
+    const { client: _, logs: __, subscribers: ___, ...info } = state;
     return info;
   };
 }

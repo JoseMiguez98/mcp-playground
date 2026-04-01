@@ -89,3 +89,11 @@ export interface ToolResult {
   content: ToolContent[];
   isError?: boolean;
 }
+
+export type LogEntryType = "send" | "recv" | "stderr" | "info" | "error";
+
+export interface LogEntry {
+  type: LogEntryType;
+  data: string;
+  ts: number;
+}
