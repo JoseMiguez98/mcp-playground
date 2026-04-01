@@ -2,6 +2,10 @@
 
 A web-based UI for connecting to, managing, and interacting with **Model Context Protocol (MCP)** servers. It lets you add servers (via stdio or HTTP), browse their tools, resources, and prompts, and call tools — all from a browser interface.
 
+## Why?
+
+Debugging MCP servers typically requires connecting them to an LLM, which costs tokens and money. MCP Playground lets you call tools, read resources, and inspect prompts directly — no LLM needed.
+
 ## Features
 
 - 🔌 Connect to MCP servers over **stdio** (subprocess) or **HTTP** (SSE / Streamable HTTP)
@@ -27,7 +31,7 @@ flowchart TD
         UI["React UI"]
     end
 
-    subgraph Server["Node.js Server (localhost:4000)"]
+    subgraph Server["Node.js Server (localhost:8000)"]
         Hono["Hono HTTP API\n/api/servers/*"]
         McpManager["McpManager\n(singleton)"]
         Config["mcp-servers.json\n(persistence)"]
@@ -65,7 +69,7 @@ npm --prefix client install
 npm run dev
 ```
 
-- **API server** → `http://localhost:4000`
+- **API server** → `http://localhost:8000`
 - **UI** → `http://localhost:5173`
 
 ### Run (production)
@@ -75,7 +79,7 @@ npm run build
 npm start
 ```
 
-The Hono server will serve the built client from `http://localhost:4000`.
+The Hono server will serve the built client from `http://localhost:8000`.
 
 ## Configuration
 
@@ -106,6 +110,11 @@ Server connections are persisted in `mcp-servers.json` at the project root. You 
 }
 ```
 
+> **Note:** `mcp-servers.json` is gitignored so your local server configs are never committed. Copy `mcp-servers.example.json` as a starting point:
+> ```bash
+> cp mcp-servers.example.json mcp-servers.json
+> ```
+
 ## API Reference
 
 | Method | Path | Description |
@@ -122,3 +131,7 @@ Server connections are persisted in `mcp-servers.json` at the project root. You 
 | `POST` | `/api/servers/:id/resources/read` | Read a resource |
 | `GET` | `/api/servers/:id/prompts` | List prompts |
 | `POST` | `/api/servers/:id/prompts/:prompt/get` | Get a prompt |
+
+## Contributing
+
+Issues and PRs are welcome! Feel free to open an issue to report a bug or suggest a feature, or submit a pull request with your changes.

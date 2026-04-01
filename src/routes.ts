@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { streamSSE } from "hono/streaming";
 import { mcpManager } from "./mcp-manager.js";
 import { loadConfig, saveConfig, type ServerConfig } from "./config.js";
 
@@ -135,6 +136,47 @@ export function createRoutes() {
     } catch (err) {
       return c.json({ error: errMsg(err) }, 500);
     }
+  });
+
+  // ── Logs ──────────────────────────────────────────────────────────────────
+
+  router.get("/servers/:id/logs", (c) => {
+    const { id } = c.req.param();
+    return c.json(mcpManager.getLogs(id));
+  });
+
+  router.delete("/servers/:id/logs", (c) => {
+    const { id } = c.req.param();
+    mcpManager.clearLogs(id);
+    return c.json({ success: true });
+  });
+
+  router.get("/servers/:id/logs/stream", (c) => {
+    const { id } = c.req.param();
+    return streamSSE(c, async (stream) => {
+      // Send buffered log entries first
+      for (const entry of mcpManager.getLogs(id)) {
+        await stream.writeSSE({ data: JSON.stringify(entry) });
+      }
+
+      // Stream new entries as they arrive
+      let unsub: (() => void) | undefined;
+      await new Promise<void>((done) => {
+        stream.onAbort(() => {
+          unsub?.();
+          done();
+        });
+
+        unsub = mcpManager.subscribe(id, async (entry) => {
+          try {
+            await stream.writeSSE({ data: JSON.stringify(entry) });
+          } catch {
+            unsub?.();
+            done();
+          }
+        });
+      });
+    });
   });
 
   return router;

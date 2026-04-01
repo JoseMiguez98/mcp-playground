@@ -4,13 +4,14 @@ import { api } from "../api";
 import ToolList from "./ToolList";
 import ResourceList from "./ResourceList";
 import PromptList from "./PromptList";
+import LogPanel from "./LogPanel";
 
 interface Props {
   server: ServerInfo;
   onStatusChange: () => void;
 }
 
-type Tab = "tools" | "resources" | "prompts";
+type Tab = "tools" | "resources" | "prompts" | "logs";
 
 export default function ServerPanel({ server, onStatusChange }: Props) {
   const [tab, setTab] = useState<Tab>("tools");
@@ -149,36 +150,39 @@ export default function ServerPanel({ server, onStatusChange }: Props) {
         </div>
       )}
 
-      {!isConnected ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">🔌</div>
-          <h3>Not connected</h3>
-          <p>Connect to this server to browse and test its tools, resources, and prompts.</p>
-        </div>
-      ) : (
-        <>
-          <div className="panel-tabs">
-            {(["tools", "resources", "prompts"] as Tab[]).map((t) => {
-              const counts: Record<Tab, number | null> = {
-                tools: tools?.length ?? null,
-                resources: resources?.length ?? null,
-                prompts: prompts?.length ?? null,
-              };
-              const count = counts[t];
-              return (
-                <button
-                  key={t}
-                  className={`panel-tab ${tab === t ? "active" : ""}`}
-                  onClick={() => setTab(t)}
-                >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                  {count !== null && <span className="tab-count">{count}</span>}
-                </button>
-              );
-            })}
-          </div>
+      <div className="panel-tabs">
+        {(["tools", "resources", "prompts", "logs"] as Tab[]).map((t) => {
+          const counts: Record<Tab, number | null> = {
+            tools: tools?.length ?? null,
+            resources: resources?.length ?? null,
+            prompts: prompts?.length ?? null,
+            logs: null,
+          };
+          const count = counts[t];
+          return (
+            <button
+              key={t}
+              className={`panel-tab ${tab === t ? "active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {count !== null && <span className="tab-count">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="panel-body">
+      <div className={`panel-body${tab === "logs" ? " panel-body-logs" : ""}`}>
+        {tab === "logs" ? (
+          <LogPanel serverId={server.id} />
+        ) : !isConnected ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">🔌</div>
+            <h3>Not connected</h3>
+            <p>Connect to this server to browse and test its tools, resources, and prompts.</p>
+          </div>
+        ) : (
+          <>
             {tab === "tools" && (
               <ToolList tools={tools} serverId={server.id} loading={loading} />
             )}
@@ -188,9 +192,9 @@ export default function ServerPanel({ server, onStatusChange }: Props) {
             {tab === "prompts" && (
               <PromptList prompts={prompts} serverId={server.id} loading={loading} />
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

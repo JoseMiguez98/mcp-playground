@@ -1,6 +1,13 @@
 {
   "name": "mcp-playground",
   "version": "1.0.0",
+  "description": "Browser-based UI to connect, manage and debug MCP servers without needing an LLM",
+  "keywords": ["mcp", "model-context-protocol", "developer-tools", "debugging", "react", "hono", "typescript"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JoseMiguez98/mcp-playground"
+  },
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "concurrently --names server,client --prefix-colors cyan,magenta \"npm run dev:server\" \"npm run dev:client\"",
