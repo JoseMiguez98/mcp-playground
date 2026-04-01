@@ -33,3 +33,6 @@ Thumbs.db
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Local MCP server config (copy mcp-servers.example.json to get started)
+mcp-servers.json
