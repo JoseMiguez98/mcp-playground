@@ -1,6 +1,15 @@
 # MCP Playground
 
+![Node](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Hono](https://img.shields.io/badge/Hono-4-E36002?logo=hono&logoColor=white)
+![License](https://img.shields.io/github/license/JoseMiguez98/mcp-playground)
+
 A web-based UI for connecting to, managing, and interacting with **Model Context Protocol (MCP)** servers. It lets you add servers (via stdio or HTTP), browse their tools, resources, and prompts, and call tools — all from a browser interface.
+
+> ⭐ **If you find this project useful, please consider [giving it a star](https://github.com/JoseMiguez98/mcp-playground) — it helps others discover it!**
 
 ## Why?
 
