@@ -11,6 +11,8 @@ A web-based UI for connecting to, managing, and interacting with **Model Context
 
 > ⭐ **If you find this project useful, please consider [giving it a star](https://github.com/JoseMiguez98/mcp-playground) — it helps others discover it!**
 
+![Demo](./demo.gif)
+
 ## Why?
 
 Debugging MCP servers typically requires connecting them to an LLM, which costs tokens and money. MCP Playground lets you call tools, read resources, and inspect prompts directly — no LLM needed.
